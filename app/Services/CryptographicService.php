@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Evidence;
 use App\Models\Result;
 use App\Models\Signature;
 use RuntimeException;
@@ -9,8 +10,9 @@ use RuntimeException;
 /**
  * Handles cryptographic integrity operations for VeriVote NG results.
  *
- * Produces deterministic SHA-256 fingerprints, creates Ed25519 signatures,
- * and persists cryptographic evidence required for later verification.
+ * Produces deterministic SHA-256 fingerprints, binds result payloads to
+ * their evidence fingerprints, creates Ed25519 signatures, and verifies
+ * the resulting cryptographic record.
  */
 class CryptographicService
 {
@@ -81,21 +83,42 @@ class CryptographicService
     }
 
     /**
-     * Create an Ed25519 detached signature for a result payload hash.
+     * Build the deterministic message signed by Ed25519.
+     *
+     * The message binds the result payload fingerprint to the fingerprint
+     * of its source evidence.
+     */
+    public function buildSigningMessage(
+        string $payloadHash,
+        string $evidenceHash
+    ): string {
+        return $payloadHash . ':' . $evidenceHash;
+    }
+
+    /**
+     * Create an Ed25519 detached signature for a result and evidence pair.
      */
     public function signPayloadHash(
         string $payloadHash,
-        string $secretKey
+        string $secretKey,
+        ?string $evidenceHash = null
     ): string {
         if (strlen($secretKey) !== SODIUM_CRYPTO_SIGN_SECRETKEYBYTES) {
             throw new RuntimeException('Invalid Ed25519 secret key.');
         }
 
-        return sodium_crypto_sign_detached($payloadHash, $secretKey);
+        $message = $evidenceHash === null
+            ? $payloadHash
+            : $this->buildSigningMessage($payloadHash, $evidenceHash);
+
+        return sodium_crypto_sign_detached($message, $secretKey);
     }
 
     /**
      * Persist a result signature and its public verification key.
+     *
+     * When evidence is supplied, the signature cryptographically binds the
+     * result payload hash to the evidence file hash.
      *
      * Binary cryptographic values are encoded as hexadecimal strings so
      * they can be stored safely in the database text columns.
@@ -104,17 +127,23 @@ class CryptographicService
         Result $result,
         string $signerRole,
         string $secretKey,
-        string $publicKey
+        string $publicKey,
+        ?Evidence $evidence = null
     ): Signature {
-        $payloadHash = $result->payload_hash
-            ?? $this->generatePayloadHash($result);
+        $payloadHash = $this->generatePayloadHash($result);
 
         if ($result->payload_hash !== $payloadHash) {
             $result->payload_hash = $payloadHash;
             $result->save();
         }
 
-        $signature = $this->signPayloadHash($payloadHash, $secretKey);
+        $evidenceHash = $evidence?->file_hash;
+
+        $signature = $this->signPayloadHash(
+            $payloadHash,
+            $secretKey,
+            $evidenceHash
+        );
 
         return Signature::create([
             'result_id' => $result->id,
@@ -126,12 +155,13 @@ class CryptographicService
     }
 
     /**
-     * Verify a persisted Ed25519 signature against a result payload hash.
+     * Verify an Ed25519 signature against a result payload and evidence hash.
      */
     public function verifySignature(
         string $payloadHash,
         string $signature,
-        string $publicKey
+        string $publicKey,
+        ?string $evidenceHash = null
     ): bool {
         if (strlen($signature) !== SODIUM_CRYPTO_SIGN_BYTES) {
             return false;
@@ -141,19 +171,29 @@ class CryptographicService
             return false;
         }
 
+        $message = $evidenceHash === null
+            ? $payloadHash
+            : $this->buildSigningMessage($payloadHash, $evidenceHash);
+
         return sodium_crypto_sign_verify_detached(
             $signature,
-            $payloadHash,
+            $message,
             $publicKey
         );
     }
 
     /**
      * Verify the persisted signature associated with a result.
+     *
+     * When evidence is present, its stored fingerprint is included in the
+     * cryptographic verification boundary.
      */
     public function verifyResultSignature(Result $result): bool
     {
-        $result->loadMissing('signature');
+        $result->loadMissing([
+            'signature',
+            'evidence',
+        ]);
 
         if (!$result->signature || !$result->payload_hash) {
             return false;
@@ -166,10 +206,13 @@ class CryptographicService
             return false;
         }
 
+        $evidenceHash = $result->evidence->first()?->file_hash;
+
         return $this->verifySignature(
             $result->payload_hash,
             $signature,
-            $publicKey
+            $publicKey,
+            $evidenceHash
         );
     }
 }
