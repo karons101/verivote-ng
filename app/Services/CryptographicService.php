@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Evidence;
 use App\Models\Result;
 use App\Models\Signature;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 /**
@@ -185,8 +186,9 @@ class CryptographicService
     /**
      * Verify the persisted signature associated with a result.
      *
-     * When evidence is present, its stored fingerprint is included in the
-     * cryptographic verification boundary.
+     * The current evidence file is hashed directly from storage so the
+     * signature verification uses the actual evidence bytes rather than
+     * blindly trusting the database's stored evidence fingerprint.
      */
     public function verifyResultSignature(Result $result): bool
     {
@@ -199,6 +201,27 @@ class CryptographicService
             return false;
         }
 
+        $evidence = $result->evidence->first();
+
+        if (!$evidence) {
+            return false;
+        }
+
+        $disk = Storage::disk('public');
+
+        if (!$disk->exists($evidence->storage_path)) {
+            return false;
+        }
+
+        $actualEvidenceHash = hash_file(
+            'sha256',
+            $disk->path($evidence->storage_path)
+        );
+
+        if (!hash_equals($evidence->file_hash, $actualEvidenceHash)) {
+            return false;
+        }
+
         $signature = hex2bin($result->signature->signature);
         $publicKey = hex2bin($result->signature->public_key);
 
@@ -206,13 +229,11 @@ class CryptographicService
             return false;
         }
 
-        $evidenceHash = $result->evidence->first()?->file_hash;
-
         return $this->verifySignature(
             $result->payload_hash,
             $signature,
             $publicKey,
-            $evidenceHash
+            $actualEvidenceHash
         );
     }
 }
