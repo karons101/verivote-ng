@@ -8,7 +8,7 @@ use App\Models\Result;
  * Executes deterministic integrity checks for VeriVote NG results.
  *
  * Applies the defined verification rules to result data and combines
- * cryptographic integrity verification with deterministic result checks.
+ * cryptographic integrity verification with evidence integrity checks.
  */
 class VerificationService
 {
@@ -24,6 +24,7 @@ class VerificationService
             'pollingUnit',
             'resultEntries',
             'signature',
+            'evidence',
         ]);
 
         return [
@@ -36,12 +37,13 @@ class VerificationService
     }
 
     /**
-     * C1: The current result payload must match the signed payload hash
-     * and the stored Ed25519 signature must verify against that hash.
+     * C1: The current result payload and attached evidence must remain
+     * consistent with the recorded cryptographic verification data.
      */
     private function verifySignature(Result $result): array
     {
         $cryptographicService = app(CryptographicService::class);
+        $evidenceService = app(EvidenceService::class);
 
         if (!$result->signature || !$result->payload_hash) {
             return [
@@ -61,13 +63,33 @@ class VerificationService
             ];
         }
 
+        $evidence = $result->evidence->first();
+
+        if (!$evidence) {
+            return [
+                'rule' => 'C1',
+                'passed' => false,
+                'details' => 'The result is missing its source evidence.',
+            ];
+        }
+
+        $evidenceCheck = $evidenceService->verify($evidence);
+
+        if (!$evidenceCheck['passed']) {
+            return [
+                'rule' => 'C1',
+                'passed' => false,
+                'details' => 'The source evidence failed its recorded SHA-256 integrity check.',
+            ];
+        }
+
         $passed = $cryptographicService->verifyResultSignature($result);
 
         return [
             'rule' => 'C1',
             'passed' => $passed,
             'details' => $passed
-                ? 'The current result payload matches the signed hash and the stored Ed25519 signature verifies.'
+                ? 'The result payload and source evidence match their recorded fingerprints, and the stored Ed25519 signature verifies.'
                 : 'The stored Ed25519 signature failed cryptographic verification.',
         ];
     }
