@@ -5,6 +5,7 @@ use App\Http\Controllers\PublicVerificationController;
 use App\Http\Controllers\QrVerificationController;
 use App\Http\Controllers\ResultController;
 use App\Http\Controllers\VerificationController;
+use App\Http\Controllers\VerificationReportController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -30,6 +31,7 @@ use Illuminate\Support\Facades\Route;
 |   specific recorded result.
 | - Public Verification: exposes a read-only integrity view for a result.
 | - QR Verification: generates a scannable public verification reference.
+| - Verification Report: presents a concise, shareable integrity report.
 |
 | This separation keeps the application's HTTP boundary predictable and
 | allows the underlying verification and persistence logic to be tested
@@ -155,3 +157,20 @@ Route::get('/verify/{result}', [PublicVerificationController::class, 'show'])
 
 Route::get('/verify/{result}/qr', [QrVerificationController::class, 'show'])
     ->name('public.verify.qr');
+
+/*
+|--------------------------------------------------------------------------
+| Verification Report
+|--------------------------------------------------------------------------
+|
+| GET /verify/{result}/report
+| Presents a concise, read-only verification report for a recorded result.
+|
+| The report summarizes the result identity, verification status,
+| cryptographic integrity, deterministic checks, discrepancies, and
+| audit references without exposing observer submission controls.
+|
+*/
+
+Route::get('/verify/{result}/report', [VerificationReportController::class, 'show'])
+    ->name('public.verify.report');
