@@ -10,7 +10,7 @@ use Illuminate\Http\RedirectResponse;
  * Handles result verification requests for VeriVote NG.
  *
  * Delegates deterministic verification to the verification service and
- * redirects the observer back with the latest verification outcome.
+ * redirects the observer back to the verified result's integrity record.
  */
 class VerificationController extends Controller
 {
@@ -24,7 +24,7 @@ class VerificationController extends Controller
         $verificationCheckService->run($result);
 
         return redirect()
-            ->route('results.create')
+            ->route('results.show', ['result' => $result->id])
             ->with('success', "Verification completed for Result #{$result->id}.");
     }
 }

@@ -13,7 +13,7 @@ use Illuminate\View\View;
  * Handles polling-unit result submission and review requests for VeriVote NG.
  *
  * Coordinates HTTP requests for recording results and retrieving their
- * persisted verification outcomes while keeping business logic in services.
+ * persisted verification, discrepancy, evidence, and audit information.
  */
 class ResultController extends Controller
 {
@@ -34,16 +34,46 @@ class ResultController extends Controller
     }
 
     /**
-     * Store a validated polling-unit result.
+     * Store a validated polling-unit result and its source evidence.
      */
     public function store(
         StoreResultRequest $request,
         ResultService $resultService
     ): RedirectResponse {
-        $result = $resultService->create($request->validated());
+        $validated = $request->validated();
+
+        $result = $resultService->create(
+            $validated,
+            $request->file('evidence')
+        );
 
         return redirect()
             ->route('results.create')
             ->with('success', "Result #{$result->id} recorded successfully.");
+    }
+
+    /**
+     * Display the complete integrity record for a result.
+     *
+     * Laravel route model binding resolves the requested result before this
+     * method executes, ensuring the controller works with the persisted
+     * Result model rather than manually resolving its identifier.
+     */
+    public function show(Result $result): View
+    {
+        $result->load([
+            'election',
+            'pollingUnit',
+            'resultEntries.candidate',
+            'evidence',
+            'signature',
+            'verificationChecks',
+            'discrepancies',
+            'auditLogs',
+        ]);
+
+        return view('results.show', [
+            'result' => $result,
+        ]);
     }
 }

@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * Represents a polling-unit election result recorded by VeriVote NG.
  *
  * Stores vote totals and ballot-accounting figures used by the verification
- * engine, together with the cryptographic payload fingerprint and status.
+ * engine, together with cryptographic integrity data and verification status.
  */
 class Result extends Model
 {
@@ -34,8 +34,8 @@ class Result extends Model
         'ballots_issued' => 'integer',
         'unused_ballots' => 'integer',
         'spoiled_ballots' => 'integer',
-        'rejected_votes' => 'integer',
         'total_valid_votes' => 'integer',
+        'rejected_votes' => 'integer',
     ];
 
     public function election(): BelongsTo
@@ -66,5 +66,23 @@ class Result extends Model
     public function verificationChecks(): HasMany
     {
         return $this->hasMany(VerificationCheck::class);
+    }
+
+    public function discrepancies(): HasMany
+    {
+        return $this->hasMany(Discrepancy::class);
+    }
+
+    /**
+     * Get audit events associated with this result.
+     *
+     * Audit logs use a polymorphic-style entity name and identifier rather
+     * than a database foreign key, allowing the audit trail to cover
+     * multiple entity types while retaining result-specific history here.
+     */
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(AuditLog::class, 'entity_id')
+            ->where('entity_name', 'result');
     }
 }
