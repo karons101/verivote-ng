@@ -12,8 +12,8 @@ use RuntimeException;
  * Handles cryptographic integrity operations for VeriVote NG results.
  *
  * Produces deterministic SHA-256 fingerprints, binds result payloads to
- * their evidence fingerprints, creates Ed25519 signatures, and verifies
- * the resulting cryptographic record.
+ * evidence fingerprints, creates Ed25519 signatures, and verifies the
+ * resulting cryptographic record.
  */
 class CryptographicService
 {
@@ -98,6 +98,9 @@ class CryptographicService
 
     /**
      * Create an Ed25519 detached signature for a result and evidence pair.
+     *
+     * The signing secret key is supplied by the application configuration
+     * and is never persisted in the database.
      */
     public function signPayloadHash(
         string $payloadHash,
@@ -116,21 +119,42 @@ class CryptographicService
     }
 
     /**
-     * Persist a result signature and its public verification key.
+     * Sign a result using the configured VeriVote NG Ed25519 key pair.
      *
-     * When evidence is supplied, the signature cryptographically binds the
-     * result payload hash to the evidence file hash.
-     *
-     * Binary cryptographic values are encoded as hexadecimal strings so
-     * they can be stored safely in the database text columns.
+     * Evidence is required so every automatically generated signature
+     * cryptographically binds the result payload to its source evidence.
      */
     public function signResult(
         Result $result,
         string $signerRole,
-        string $secretKey,
-        string $publicKey,
-        ?Evidence $evidence = null
+        Evidence $evidence
     ): Signature {
+        $secretKeyHex = config('services.verivote.signing_secret_key');
+        $publicKeyHex = config('services.verivote.signing_public_key');
+
+        if (!$secretKeyHex || !$publicKeyHex) {
+            throw new RuntimeException(
+                'VeriVote NG signing keys are not configured.'
+            );
+        }
+
+        $secretKey = hex2bin($secretKeyHex);
+        $publicKey = hex2bin($publicKeyHex);
+
+        if ($secretKey === false || $publicKey === false) {
+            throw new RuntimeException(
+                'VeriVote NG signing keys must be valid hexadecimal values.'
+            );
+        }
+
+        if (strlen($secretKey) !== SODIUM_CRYPTO_SIGN_SECRETKEYBYTES) {
+            throw new RuntimeException('Invalid configured Ed25519 secret key.');
+        }
+
+        if (strlen($publicKey) !== SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES) {
+            throw new RuntimeException('Invalid configured Ed25519 public key.');
+        }
+
         $payloadHash = $this->generatePayloadHash($result);
 
         if ($result->payload_hash !== $payloadHash) {
@@ -138,12 +162,10 @@ class CryptographicService
             $result->save();
         }
 
-        $evidenceHash = $evidence?->file_hash;
-
         $signature = $this->signPayloadHash(
             $payloadHash,
             $secretKey,
-            $evidenceHash
+            $evidence->file_hash
         );
 
         return Signature::create([

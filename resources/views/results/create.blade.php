@@ -1,8 +1,8 @@
 {{--
     VeriVote NG Result Submission and Verification
 
-    Provides the observer interface for recording polling-unit result data
-    and reviewing the deterministic verification outcome for a recorded result.
+    Provides the observer interface for recording polling-unit result data,
+    submitting source evidence, and reviewing deterministic verification outcomes.
 --}}
 
 <!DOCTYPE html>
@@ -18,7 +18,7 @@
 
         <p>
             Record election result data for a polling unit and submit it
-            for deterministic integrity verification.
+            with source evidence for deterministic integrity verification.
         </p>
 
         @if (session('success'))
@@ -40,7 +40,11 @@
         <section>
             <h2>Submit Result</h2>
 
-            <form method="POST" action="{{ route('results.store') }}">
+            <form
+                method="POST"
+                action="{{ route('results.store') }}"
+                enctype="multipart/form-data"
+            >
                 @csrf
 
                 <div>
@@ -49,7 +53,7 @@
                         type="number"
                         id="election_id"
                         name="election_id"
-                        value="{{ old('election_id') }}"
+                        value="{{ old('election_id', 1) }}"
                         required
                     >
                 </div>
@@ -60,7 +64,7 @@
                         type="number"
                         id="polling_unit_id"
                         name="polling_unit_id"
-                        value="{{ old('polling_unit_id') }}"
+                        value="{{ old('polling_unit_id', 1) }}"
                         required
                     >
                 </div>
@@ -71,7 +75,7 @@
                         type="number"
                         id="accredited_voters"
                         name="accredited_voters"
-                        value="{{ old('accredited_voters') }}"
+                        value="{{ old('accredited_voters', 100) }}"
                         min="0"
                         required
                     >
@@ -83,7 +87,7 @@
                         type="number"
                         id="ballots_issued"
                         name="ballots_issued"
-                        value="{{ old('ballots_issued') }}"
+                        value="{{ old('ballots_issued', 100) }}"
                         min="0"
                         required
                     >
@@ -95,7 +99,7 @@
                         type="number"
                         id="unused_ballots"
                         name="unused_ballots"
-                        value="{{ old('unused_ballots') }}"
+                        value="{{ old('unused_ballots', 10) }}"
                         min="0"
                         required
                     >
@@ -107,7 +111,7 @@
                         type="number"
                         id="spoiled_ballots"
                         name="spoiled_ballots"
-                        value="{{ old('spoiled_ballots') }}"
+                        value="{{ old('spoiled_ballots', 0) }}"
                         min="0"
                         required
                     >
@@ -119,7 +123,7 @@
                         type="number"
                         id="rejected_votes"
                         name="rejected_votes"
-                        value="{{ old('rejected_votes') }}"
+                        value="{{ old('rejected_votes', 5) }}"
                         min="0"
                         required
                     >
@@ -131,7 +135,7 @@
                         type="number"
                         id="total_valid_votes"
                         name="total_valid_votes"
-                        value="{{ old('total_valid_votes') }}"
+                        value="{{ old('total_valid_votes', 85) }}"
                         min="0"
                         required
                     >
@@ -141,28 +145,89 @@
                     <legend>Candidate Votes</legend>
 
                     <div>
-                        <label for="candidate_id">Candidate ID</label>
+                        <label for="candidate_id_1">Candidate 1 ID</label>
                         <input
                             type="number"
-                            id="candidate_id"
+                            id="candidate_id_1"
                             name="entries[0][candidate_id]"
-                            value="{{ old('entries.0.candidate_id') }}"
+                            value="{{ old('entries.0.candidate_id', 1) }}"
                             required
                         >
                     </div>
 
                     <div>
-                        <label for="vote_count">Vote Count</label>
+                        <label for="vote_count_1">Candidate 1 Vote Count</label>
                         <input
                             type="number"
-                            id="vote_count"
+                            id="vote_count_1"
                             name="entries[0][vote_count]"
-                            value="{{ old('entries.0.vote_count') }}"
+                            value="{{ old('entries.0.vote_count', 50) }}"
+                            min="0"
+                            required
+                        >
+                    </div>
+
+                    <div>
+                        <label for="candidate_id_2">Candidate 2 ID</label>
+                        <input
+                            type="number"
+                            id="candidate_id_2"
+                            name="entries[1][candidate_id]"
+                            value="{{ old('entries.1.candidate_id', 2) }}"
+                            required
+                        >
+                    </div>
+
+                    <div>
+                        <label for="vote_count_2">Candidate 2 Vote Count</label>
+                        <input
+                            type="number"
+                            id="vote_count_2"
+                            name="entries[1][vote_count]"
+                            value="{{ old('entries.1.vote_count', 25) }}"
+                            min="0"
+                            required
+                        >
+                    </div>
+
+                    <div>
+                        <label for="candidate_id_3">Candidate 3 ID</label>
+                        <input
+                            type="number"
+                            id="candidate_id_3"
+                            name="entries[2][candidate_id]"
+                            value="{{ old('entries.2.candidate_id', 3) }}"
+                            required
+                        >
+                    </div>
+
+                    <div>
+                        <label for="vote_count_3">Candidate 3 Vote Count</label>
+                        <input
+                            type="number"
+                            id="vote_count_3"
+                            name="entries[2][vote_count]"
+                            value="{{ old('entries.2.vote_count', 10) }}"
                             min="0"
                             required
                         >
                     </div>
                 </fieldset>
+
+                <div>
+                    <label for="evidence">Source Evidence</label>
+                    <input
+                        type="file"
+                        id="evidence"
+                        name="evidence"
+                        required
+                    >
+
+                    <p>
+                        Upload the source evidence associated with this
+                        polling-unit result. Maximum file size: 10 MB.
+                    </p>
+                </div>
 
                 <button type="submit">Submit Result</button>
             </form>

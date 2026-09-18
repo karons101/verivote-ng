@@ -3,25 +3,28 @@
 namespace App\Services;
 
 use App\Models\Result;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Handles persistence of polling-unit results for VeriVote NG.
  *
- * Keeps result creation and related database operations outside the HTTP
- * controller so business logic can be tested and reused independently.
+ * Keeps result creation, candidate entries, evidence storage, cryptographic
+ * signing, and deterministic verification inside a transactional workflow.
  */
 class ResultService
 {
     /**
-     * Create a polling-unit result and its candidate vote entries.
+     * Create a polling-unit result, candidate vote entries, source evidence,
+     * its evidence-bound cryptographic signature, and verification checks.
      *
-     * The operation is wrapped in a database transaction so the result and
-     * its entries are persisted together or not persisted at all.
+     * The complete operation is wrapped in a database transaction so the
+     * result, entries, evidence, signature, and verification outcomes are
+     * persisted together or not persisted at all.
      */
-    public function create(array $data): Result
+    public function create(array $data, UploadedFile $evidence): Result
     {
-        return DB::transaction(function () use ($data): Result {
+        return DB::transaction(function () use ($data, $evidence): Result {
             $entries = $data['entries'];
             unset($data['entries']);
 
@@ -29,7 +32,32 @@ class ResultService
 
             $result->resultEntries()->createMany($entries);
 
-            return $result->load('resultEntries');
+            $evidenceRecord = app(EvidenceService::class)->store(
+                $result,
+                $evidence
+            );
+
+            app(CryptographicService::class)->signResult(
+                $result->fresh(['resultEntries']),
+                'polling_official',
+                $evidenceRecord
+            );
+
+            app(VerificationCheckService::class)->run(
+                $result->fresh([
+                    'resultEntries',
+                    'evidence',
+                    'signature',
+                    'pollingUnit',
+                ])
+            );
+
+            return $result->load([
+                'resultEntries',
+                'evidence',
+                'signature',
+                'verificationChecks',
+            ]);
         });
     }
 }

@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Route;
 | - Home: public entry point for the application.
 | - Observer Dashboard: displays available elections and observer context.
 | - Result Capture: presents and accepts polling-unit result submissions.
+| - Result Detail: displays the complete integrity record for a result.
 | - Result Verification: executes deterministic integrity checks for a
 |   specific recorded result.
 |
@@ -41,6 +42,7 @@ Route::get('/', function () {
 | Observer Dashboard
 |--------------------------------------------------------------------------
 |
+| GET /dashboard
 | Displays election data retrieved by DashboardController. This is the
 | primary observer-facing entry point for reviewing election context before
 | interacting with result and verification workflows.
@@ -55,7 +57,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 | Result Capture
 |--------------------------------------------------------------------------
 |
-| GET  /results/create
+| GET /results/create
 | Presents the result-capture interface.
 |
 | POST /results
@@ -75,6 +77,28 @@ Route::post('/results', [ResultController::class, 'store'])
 
 /*
 |--------------------------------------------------------------------------
+| Result Detail
+|--------------------------------------------------------------------------
+|
+| GET /results/{result}
+| Displays the complete integrity record for a specific result.
+|
+| Laravel's route model binding resolves {result} to the corresponding
+| Result model identifier. ResultController loads the associated election,
+| polling unit, candidate entries, evidence, signature, verification
+| checks, and discrepancies for presentation.
+|
+| This route provides the primary detail view from which observers can
+| understand the cryptographic and deterministic verification state of
+| an individual polling-unit result.
+|
+*/
+
+Route::get('/results/{result}', [ResultController::class, 'show'])
+    ->name('results.show');
+
+/*
+|--------------------------------------------------------------------------
 | Result Verification
 |--------------------------------------------------------------------------
 |
@@ -84,7 +108,9 @@ Route::post('/results', [ResultController::class, 'store'])
 | Laravel's route model binding resolves {result} to the corresponding
 | Result model. VerificationController then delegates the verification
 | workflow to VerificationCheckService, which executes the defined
-| verification rules and persists their outcomes for auditability.
+| verification rules, persists their outcomes, creates structured
+| discrepancies for failed checks, updates the result status, and records
+| the verification event in the tamper-evident audit trail.
 |
 | Verification is deliberately exposed as a POST operation because it
 | triggers an application action rather than merely retrieving a resource.

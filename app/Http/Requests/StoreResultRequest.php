@@ -8,7 +8,7 @@ use Illuminate\Foundation\Http\FormRequest;
  * Validates polling-unit result submissions for VeriVote NG.
  *
  * Ensures the submitted result contains valid election, polling-unit,
- * ballot-accounting, and vote-total data before processing.
+ * ballot-accounting, candidate vote, and source-evidence data before processing.
  */
 class StoreResultRequest extends FormRequest
 {
@@ -31,6 +31,7 @@ class StoreResultRequest extends FormRequest
             'entries' => ['required', 'array', 'min:1'],
             'entries.*.candidate_id' => ['required', 'integer', 'exists:candidates,id'],
             'entries.*.vote_count' => ['required', 'integer', 'min:0'],
+            'evidence' => ['required', 'file', 'max:10240'],
         ];
     }
 }
