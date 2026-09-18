@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PublicVerificationController;
 use App\Http\Controllers\ResultController;
 use App\Http\Controllers\VerificationController;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +27,7 @@ use Illuminate\Support\Facades\Route;
 | - Result Detail: displays the complete integrity record for a result.
 | - Result Verification: executes deterministic integrity checks for a
 |   specific recorded result.
+| - Public Verification: exposes a read-only integrity view for a result.
 |
 | This separation keeps the application's HTTP boundary predictable and
 | allows the underlying verification and persistence logic to be tested
@@ -86,7 +88,7 @@ Route::post('/results', [ResultController::class, 'store'])
 | Laravel's route model binding resolves {result} to the corresponding
 | Result model identifier. ResultController loads the associated election,
 | polling unit, candidate entries, evidence, signature, verification
-| checks, and discrepancies for presentation.
+| checks, discrepancies, and audit events for presentation.
 |
 | This route provides the primary detail view from which observers can
 | understand the cryptographic and deterministic verification state of
@@ -106,11 +108,11 @@ Route::get('/results/{result}', [ResultController::class, 'show'])
 | Triggers deterministic verification for a specific recorded result.
 |
 | Laravel's route model binding resolves {result} to the corresponding
-| Result model. VerificationController then delegates the verification
-| workflow to VerificationCheckService, which executes the defined
-| verification rules, persists their outcomes, creates structured
-| discrepancies for failed checks, updates the result status, and records
-| the verification event in the tamper-evident audit trail.
+| Result model. VerificationController delegates the verification workflow
+| to VerificationCheckService, which executes the verification rules,
+| persists their outcomes, creates structured discrepancies for failed
+| checks, updates the result status, and records the verification event
+| in the tamper-evident audit trail.
 |
 | Verification is deliberately exposed as a POST operation because it
 | triggers an application action rather than merely retrieving a resource.
@@ -119,3 +121,19 @@ Route::get('/results/{result}', [ResultController::class, 'show'])
 
 Route::post('/results/{result}/verify', [VerificationController::class, 'verify'])
     ->name('results.verify');
+
+/*
+|--------------------------------------------------------------------------
+| Public Verification
+|--------------------------------------------------------------------------
+|
+| GET /verify/{result}
+| Provides a read-only public integrity view for a recorded result.
+|
+| The public route deliberately exposes verification information without
+| exposing observer submission controls or administrative actions.
+|
+*/
+
+Route::get('/verify/{result}', [PublicVerificationController::class, 'show'])
+    ->name('public.verify');
