@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PublicVerificationController;
+use App\Http\Controllers\QrVerificationController;
 use App\Http\Controllers\ResultController;
 use App\Http\Controllers\VerificationController;
 use Illuminate\Support\Facades\Route;
@@ -12,8 +13,8 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 |
 | This file defines the HTTP entry points for the VeriVote NG web
-| application. Each route maps an incoming browser request to the
-| controller responsible for that application workflow.
+| application. Each route maps an incoming browser request to the controller
+| responsible for that application workflow.
 |
 | The routing layer intentionally remains thin: it defines URLs, HTTP
 | methods, route parameters, and controller destinations while keeping
@@ -28,6 +29,7 @@ use Illuminate\Support\Facades\Route;
 | - Result Verification: executes deterministic integrity checks for a
 |   specific recorded result.
 | - Public Verification: exposes a read-only integrity view for a result.
+| - QR Verification: generates a scannable public verification reference.
 |
 | This separation keeps the application's HTTP boundary predictable and
 | allows the underlying verification and persistence logic to be tested
@@ -86,7 +88,7 @@ Route::post('/results', [ResultController::class, 'store'])
 | Displays the complete integrity record for a specific result.
 |
 | Laravel's route model binding resolves {result} to the corresponding
-| Result model identifier. ResultController loads the associated election,
+| Result model. ResultController loads the associated election,
 | polling unit, candidate entries, evidence, signature, verification
 | checks, discrepancies, and audit events for presentation.
 |
@@ -137,3 +139,19 @@ Route::post('/results/{result}/verify', [VerificationController::class, 'verify'
 
 Route::get('/verify/{result}', [PublicVerificationController::class, 'show'])
     ->name('public.verify');
+
+/*
+|--------------------------------------------------------------------------
+| QR Verification
+|--------------------------------------------------------------------------
+|
+| GET /verify/{result}/qr
+| Generates a QR code containing the public verification URL for a result.
+|
+| Scanning the generated code directs the user to the read-only public
+| verification page for that recorded result.
+|
+*/
+
+Route::get('/verify/{result}/qr', [QrVerificationController::class, 'show'])
+    ->name('public.verify.qr');

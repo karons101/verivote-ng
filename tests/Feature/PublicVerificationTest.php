@@ -13,8 +13,8 @@ use Tests\TestCase;
 /**
  * Verifies the public result verification workflow for VeriVote NG.
  *
- * Ensures recorded results are publicly readable, while unknown result
- * identifiers correctly return a not-found response.
+ * Ensures recorded results are publicly readable, QR verification endpoints
+ * return valid SVG responses, and unknown result identifiers return not found.
  */
 class PublicVerificationTest extends TestCase
 {
@@ -37,6 +37,38 @@ class PublicVerificationTest extends TestCase
         $response->assertSee($result->pollingUnit->pu_code);
         $response->assertSee('Test Candidate A');
         $response->assertSee('Test Candidate B');
+    }
+
+    /**
+     * Verify that the public verification QR endpoint returns SVG output.
+     */
+    public function test_qr_verification_endpoint_returns_svg(): void
+    {
+        $result = $this->createResult();
+
+        $response = $this->get(
+            route('public.verify.qr', ['result' => $result->id])
+        );
+
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'image/svg+xml');
+
+        $this->assertStringContainsString(
+            '<svg',
+            $response->getContent()
+        );
+    }
+
+    /**
+     * Verify that an unknown result QR endpoint returns HTTP 404.
+     */
+    public function test_unknown_result_qr_returns_not_found(): void
+    {
+        $response = $this->get(
+            route('public.verify.qr', ['result' => 999999])
+        );
+
+        $response->assertNotFound();
     }
 
     /**
