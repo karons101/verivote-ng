@@ -1,58 +1,137 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# VeriVote NG
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+### Evidence you can verify. Results you can audit.
 
-## About Laravel
+VeriVote NG is an independent evidence-verification layer for polling-unit election results.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+It binds source evidence to recorded vote data, applies cryptographic verification, evaluates deterministic integrity rules, detects discrepancies, and exposes an auditable public verification record.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+> **AI interprets. Cryptography protects. Deterministic rules verify. Humans decide.**
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## The Problem
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+There is a trust gap between polling-unit result evidence and later representations of that result during the electoral collation process.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+A result may exist as:
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+- Recorded vote data
+- Physical source evidence
+- Digitally transmitted or published information
+- Later representations used during collation or review
 
-## Agentic Development
+VeriVote NG focuses on the integrity of the recorded evidence and the consistency of the data associated with it.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+The system does not attempt to determine electoral intent or declare fraud.
 
-```bash
-composer require laravel/boost --dev
+Instead, it provides technical evidence that can identify an integrity failure or discrepancy requiring human investigation.
 
-php artisan boost:install
-```
+---
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## What VeriVote NG Does
 
-## Contributing
+The current MVP provides a complete verification workflow:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+1. Record a polling-unit result.
+2. Attach source evidence to the result.
+3. Generate a deterministic SHA-256 payload hash.
+4. Hash the source evidence.
+5. Bind result data and evidence cryptographically.
+6. Verify an Ed25519 signature.
+7. Run deterministic mathematical integrity checks.
+8. Detect and classify discrepancies.
+9. Record verification events in a tamper-evident audit chain.
+10. Expose the result through public verification.
+11. Generate a public verification report.
+12. Provide QR-based access to public verification.
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Current MVP
 
-## Security Vulnerabilities
+### Implemented
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- Polling-unit result capture
+- Source evidence storage
+- SHA-256 payload hashing
+- SHA-256 evidence hashing
+- Ed25519 digital signatures
+- Evidence-bound cryptographic verification
+- Deterministic result verification
+- Discrepancy detection
+- Verification status tracking
+- Hash-linked audit trail
+- Public verification
+- Verification reports
+- QR verification
+- Automated tests
+- Responsive product landing page
 
-## License
+### Intentionally not part of the current MVP
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+The following capabilities are future extensions and are **not represented as implemented functionality**:
+
+- Offline-first synchronization
+- Distributed/local evidence exchange
+- Cross-source comparison with later published representations
+- Expanded AI assistance
+- Incident and safety reporting
+- Broader electoral audit infrastructure
+
+These are clearly marked as **Coming Soon** in the application.
+
+---
+
+# Verification Architecture
+
+VeriVote NG separates the different responsibilities involved in establishing and interpreting evidence.
+
+```text
+                    ┌─────────────────────────┐
+                    │   Polling Unit Result   │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │    Source Evidence      │
+                    └────────────┬────────────┘
+                                 │
+                   ┌─────────────┴─────────────┐
+                   ▼                           ▼
+          ┌─────────────────┐        ┌─────────────────┐
+          │   SHA-256 Hash  │        │   Evidence Hash │
+          └────────┬────────┘        └────────┬────────┘
+                   │                          │
+                   └────────────┬─────────────┘
+                                ▼
+                     ┌────────────────────┐
+                     │ Ed25519 Signature  │
+                     └─────────┬──────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │ Cryptographic Check  │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │ Deterministic Rules  │
+                    │        C1 – C5       │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │ Discrepancy Detection│
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │    Audit Trail       │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+              ┌─────────────────────────────────┐
+              │ Public Verification / Report /  │
+              │              QR                 │
+              └─────────────────────────────────┘

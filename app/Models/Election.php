@@ -21,6 +21,10 @@ class Election extends Model
         'status',
     ];
 
+    protected $casts = [
+        'voting_date' => 'date',
+    ];
+
     public function pollingUnits(): HasMany
     {
         return $this->hasMany(PollingUnit::class);
