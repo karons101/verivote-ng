@@ -2,8 +2,8 @@
     VeriVote NG Landing Page
 
     Presents the product purpose, current MVP capabilities, verification
-    workflow, demo records, system boundaries, and clearly labelled future
-    extensions from the public application entry point.
+    workflow, live demo records, system boundaries, and clearly labelled
+    future extensions from the public application entry point.
 --}}
 
 <!DOCTYPE html>
@@ -763,12 +763,21 @@
                             Open Observer Dashboard
                         </a>
 
-                        <a
-                            href="{{ route('public.verify', ['result' => 4]) }}"
-                            class="button button-secondary"
-                        >
-                            Verify Demo Result
-                        </a>
+                        @if ($verifiedDemo)
+                            <a
+                                href="{{ route('public.verify', $verifiedDemo) }}"
+                                class="button button-secondary"
+                            >
+                                Verify Demo Result
+                            </a>
+                        @else
+                            <a
+                                href="{{ route('results.create') }}"
+                                class="button button-secondary"
+                            >
+                                Record Demo Result
+                            </a>
+                        @endif
                     </div>
                 </div>
 
@@ -776,33 +785,93 @@
                     <div class="status-row">
                         <span class="status-label">Integrity verification</span>
 
-                        <span class="status status-verified">
-                            ● VERIFIED
-                        </span>
+                        @if ($verifiedDemo)
+                            <span class="status status-verified">
+                                ● VERIFIED
+                            </span>
+                        @elseif ($flaggedDemo)
+                            <span class="status status-flagged">
+                                ● FLAGGED
+                            </span>
+                        @else
+                            <span class="status status-label">
+                                DEMO DATA PENDING
+                            </span>
+                        @endif
                     </div>
 
-                    <div class="result-number">
-                        Demo Result #4
-                    </div>
-
-                    <div class="result-title">
-                        Polling Unit Result Record
-                    </div>
-
-                    <div class="hash-box">
-                        <div class="hash-label">Payload SHA-256</div>
-
-                        <div class="hash">
-                            56a60f...2703f
+                    @if ($verifiedDemo)
+                        <div class="result-number">
+                            Demo Result #{{ $verifiedDemo->id }}
                         </div>
-                    </div>
 
-                    <div class="security-strip">
-                        <div class="security-item">SHA-256</div>
-                        <div class="security-item">Ed25519</div>
-                        <div class="security-item">C1–C5</div>
-                        <div class="security-item">Audit Chain</div>
-                    </div>
+                        <div class="result-title">
+                            Polling Unit Result Record
+                        </div>
+
+                        <div class="hash-box">
+                            <div class="hash-label">Payload SHA-256</div>
+
+                            <div class="hash">
+                                {{ $verifiedDemo->payload_hash ?? 'Available after cryptographic capture' }}
+                            </div>
+                        </div>
+
+                        <div class="security-strip">
+                            <div class="security-item">SHA-256</div>
+                            <div class="security-item">Ed25519</div>
+                            <div class="security-item">C1–C5</div>
+                            <div class="security-item">Audit Chain</div>
+                        </div>
+                    @elseif ($flaggedDemo)
+                        <div class="result-number">
+                            Demo Result #{{ $flaggedDemo->id }}
+                        </div>
+
+                        <div class="result-title">
+                            Integrity Review Required
+                        </div>
+
+                        <div class="hash-box">
+                            <div class="hash-label">Verification status</div>
+
+                            <div class="hash">
+                                This demo record contains a detected integrity
+                                discrepancy requiring human review.
+                            </div>
+                        </div>
+
+                        <div class="security-strip">
+                            <div class="security-item">SHA-256</div>
+                            <div class="security-item">Ed25519</div>
+                            <div class="security-item">C1–C5</div>
+                            <div class="security-item">Audit Chain</div>
+                        </div>
+                    @else
+                        <div class="result-number">
+                            Demo Result
+                        </div>
+
+                        <div class="result-title">
+                            No verification record available yet
+                        </div>
+
+                        <div class="hash-box">
+                            <div class="hash-label">Demo state</div>
+
+                            <div class="hash">
+                                Create and verify a result to populate the live
+                                demonstration records.
+                            </div>
+                        </div>
+
+                        <div class="security-strip">
+                            <div class="security-item">SHA-256</div>
+                            <div class="security-item">Ed25519</div>
+                            <div class="security-item">C1–C5</div>
+                            <div class="security-item">Audit Chain</div>
+                        </div>
+                    @endif
                 </div>
 
             </div>
@@ -984,132 +1053,171 @@
                 <div class="demo-grid">
 
                     {{-- Verified demo --}}
-                    <article class="demo-card">
-                        <div class="demo-card-top">
-                            <div>
-                                <div class="status-label">Result #4</div>
-                                <h3>Verified result</h3>
+                    @if ($verifiedDemo)
+                        <article class="demo-card">
+                            <div class="demo-card-top">
+                                <div>
+                                    <div class="status-label">
+                                        Result #{{ $verifiedDemo->id }}
+                                    </div>
+
+                                    <h3>Verified result</h3>
+                                </div>
+
+                                <span class="status status-verified">
+                                    ● VERIFIED
+                                </span>
                             </div>
 
-                            <span class="status status-verified">
-                                ● VERIFIED
-                            </span>
-                        </div>
+                            <p>
+                                The cryptographic and deterministic verification
+                                checks pass for this demo result.
+                            </p>
 
-                        <p>
-                            The cryptographic and deterministic verification
-                            checks pass for this demo result.
-                        </p>
+                            <div class="demo-meta">
+                                @foreach ($verifiedDemo->resultEntries as $entry)
+                                    <div class="meta-item">
+                                        <div class="meta-label">
+                                            {{ $entry->candidate->candidate_name }}
+                                        </div>
 
-                        <div class="demo-meta">
-                            <div class="meta-item">
-                                <div class="meta-label">Candidate A</div>
-                                <div class="meta-value">50 votes</div>
+                                        <div class="meta-value">
+                                            {{ $entry->vote_count }} votes
+                                        </div>
+                                    </div>
+                                @endforeach
+
+                                <div class="meta-item">
+                                    <div class="meta-label">Valid votes</div>
+
+                                    <div class="meta-value">
+                                        {{ $verifiedDemo->total_valid_votes }}
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="meta-item">
-                                <div class="meta-label">Candidate B</div>
-                                <div class="meta-value">25 votes</div>
+                            <div class="demo-actions">
+                                <a
+                                    href="{{ route('public.verify', $verifiedDemo) }}"
+                                    class="small-button"
+                                >
+                                    Public Verification
+                                </a>
+
+                                <a
+                                    href="{{ route('public.verify.report', $verifiedDemo) }}"
+                                    class="small-button"
+                                >
+                                    Verification Report
+                                </a>
+
+                                <a
+                                    href="{{ route('public.verify.qr', $verifiedDemo) }}"
+                                    class="small-button"
+                                >
+                                    QR
+                                </a>
                             </div>
-
-                            <div class="meta-item">
-                                <div class="meta-label">Candidate C</div>
-                                <div class="meta-value">10 votes</div>
-                            </div>
-
-                            <div class="meta-item">
-                                <div class="meta-label">Valid votes</div>
-                                <div class="meta-value">85</div>
-                            </div>
-                        </div>
-
-                        <div class="demo-actions">
-                            <a
-                                href="{{ route('public.verify', ['result' => 4]) }}"
-                                class="small-button"
-                            >
-                                Public Verification
-                            </a>
-
-                            <a
-                                href="{{ route('public.verify.report', ['result' => 4]) }}"
-                                class="small-button"
-                            >
-                                Verification Report
-                            </a>
-
-                            <a
-                                href="{{ route('public.verify.qr', ['result' => 4]) }}"
-                                class="small-button"
-                            >
-                                QR
-                            </a>
-                        </div>
-                    </article>
+                        </article>
+                    @endif
 
                     {{-- Flagged demo --}}
-                    <article class="demo-card">
-                        <div class="demo-card-top">
-                            <div>
-                                <div class="status-label">Result #5</div>
-                                <h3>Discrepancy detected</h3>
+                    @if ($flaggedDemo)
+                        <article class="demo-card">
+                            <div class="demo-card-top">
+                                <div>
+                                    <div class="status-label">
+                                        Result #{{ $flaggedDemo->id }}
+                                    </div>
+
+                                    <h3>Discrepancy detected</h3>
+                                </div>
+
+                                <span class="status status-flagged">
+                                    ● FLAGGED
+                                </span>
                             </div>
 
-                            <span class="status status-flagged">
-                                ● FLAGGED
-                            </span>
-                        </div>
+                            <p>
+                                This record contains a detected integrity
+                                discrepancy requiring human investigation.
+                            </p>
 
-                        <p>
-                            The candidate vote entries do not reconcile with the
-                            recorded total valid votes, triggering rule C5.
-                        </p>
+                            <div class="demo-meta">
+                                @foreach ($flaggedDemo->resultEntries as $entry)
+                                    <div class="meta-item">
+                                        <div class="meta-label">
+                                            {{ $entry->candidate->candidate_name }}
+                                        </div>
 
-                        <div class="demo-meta">
-                            <div class="meta-item">
-                                <div class="meta-label">Candidate A</div>
-                                <div class="meta-value">50 votes</div>
+                                        <div class="meta-value">
+                                            {{ $entry->vote_count }} votes
+                                        </div>
+                                    </div>
+                                @endforeach
+
+                                <div class="meta-item">
+                                    <div class="meta-label">Recorded valid votes</div>
+
+                                    <div class="meta-value">
+                                        {{ $flaggedDemo->total_valid_votes }}
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="meta-item">
-                                <div class="meta-label">Candidate B</div>
-                                <div class="meta-value">25 votes</div>
+                            <div class="demo-actions">
+                                <a
+                                    href="{{ route('public.verify', $flaggedDemo) }}"
+                                    class="small-button"
+                                >
+                                    Inspect Discrepancy
+                                </a>
+
+                                <a
+                                    href="{{ route('public.verify.report', $flaggedDemo) }}"
+                                    class="small-button"
+                                >
+                                    Verification Report
+                                </a>
+
+                                <a
+                                    href="{{ route('public.verify.qr', $flaggedDemo) }}"
+                                    class="small-button"
+                                >
+                                    QR
+                                </a>
+                            </div>
+                        </article>
+                    @endif
+
+                    @if (!$verifiedDemo && !$flaggedDemo)
+                        <article class="demo-card">
+                            <div class="demo-card-top">
+                                <div>
+                                    <div class="status-label">Demo dataset</div>
+                                    <h3>No demo records yet</h3>
+                                </div>
+
+                                <span class="status status-label">
+                                    PENDING
+                                </span>
                             </div>
 
-                            <div class="meta-item">
-                                <div class="meta-label">Candidate C</div>
-                                <div class="meta-value">9 votes</div>
+                            <p>
+                                Create and verify a result to populate the live
+                                verification demonstration.
+                            </p>
+
+                            <div class="demo-actions">
+                                <a
+                                    href="{{ route('results.create') }}"
+                                    class="small-button"
+                                >
+                                    Record Demo Result
+                                </a>
                             </div>
-
-                            <div class="meta-item">
-                                <div class="meta-label">Recorded valid votes</div>
-                                <div class="meta-value">85</div>
-                            </div>
-                        </div>
-
-                        <div class="demo-actions">
-                            <a
-                                href="{{ route('public.verify', ['result' => 5]) }}"
-                                class="small-button"
-                            >
-                                Inspect Discrepancy
-                            </a>
-
-                            <a
-                                href="{{ route('public.verify.report', ['result' => 5]) }}"
-                                class="small-button"
-                            >
-                                Verification Report
-                            </a>
-
-                            <a
-                                href="{{ route('public.verify.qr', ['result' => 5]) }}"
-                                class="small-button"
-                            >
-                                QR
-                            </a>
-                        </div>
-                    </article>
+                        </article>
+                    @endif
 
                 </div>
             </div>
@@ -1192,6 +1300,7 @@
                     </article>
 
                 </div>
+
             </div>
         </section>
 
@@ -1319,12 +1428,21 @@
                             Record Demo Result
                         </a>
 
-                        <a
-                            href="{{ route('public.verify', ['result' => 4]) }}"
-                            class="button button-secondary"
-                        >
-                            Public Verification
-                        </a>
+                        @if ($verifiedDemo)
+                            <a
+                                href="{{ route('public.verify', $verifiedDemo) }}"
+                                class="button button-secondary"
+                            >
+                                Public Verification
+                            </a>
+                        @elseif ($flaggedDemo)
+                            <a
+                                href="{{ route('public.verify', $flaggedDemo) }}"
+                                class="button button-secondary"
+                            >
+                                Inspect Verification
+                            </a>
+                        @endif
                     </div>
                 </div>
 

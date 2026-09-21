@@ -11,8 +11,8 @@ return [
     |
     | Here you may specify which of the database connections below you wish
     | to use as your default connection for database operations. This is
-    | the connection which will be utilized unless another connection
-    | is explicitly specified when you execute a query / statement.
+    | the connection which will be utilized unless another connection is
+    | explicitly specified when you execute a query / statement.
     |
     */
 
@@ -58,11 +58,14 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env(
-                    'MYSQL_ATTR_SSL_CA',
-                    '/etc/ssl/certs/ca-certificates.crt'
-                ),
+                PDO::MYSQL_ATTR_SSL_CA => env('APP_ENV') === 'production'
+                    ? env(
+                        'MYSQL_ATTR_SSL_CA',
+                        '/etc/ssl/certs/ca-certificates.crt'
+                    )
+                    : null,
             ]) : [],
         ],
 
@@ -81,11 +84,14 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env(
-                    'MYSQL_ATTR_SSL_CA',
-                    '/etc/ssl/certs/ca-certificates.crt'
-                ),
+                PDO::MYSQL_ATTR_SSL_CA => env('APP_ENV') === 'production'
+                    ? env(
+                        'MYSQL_ATTR_SSL_CA',
+                        '/etc/ssl/certs/ca-certificates.crt'
+                    )
+                    : null,
             ]) : [],
         ],
 
@@ -117,6 +123,7 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+
             // 'encrypt' => env('DB_ENCRYPT', 'yes'),
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
@@ -144,8 +151,7 @@ return [
     | Redis Databases
     |--------------------------------------------------------------------------
     |
-    | Redis is an open source, fast, and advanced key-value store that also
-    | provides a richer set of Redis options for the application.
+    | Here you may specify the Redis databases used by your application.
     |
     */
 

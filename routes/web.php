@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PublicVerificationController;
 use App\Http\Controllers\QrVerificationController;
 use App\Http\Controllers\ResultController;
@@ -39,9 +40,22 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+/*
+|--------------------------------------------------------------------------
+| Public Home
+|--------------------------------------------------------------------------
+|
+| GET /
+| Displays the public VeriVote NG landing page.
+|
+| HomeController resolves the actual verified and flagged demo records
+| from the database before rendering the landing page. This prevents
+| hard-coded result IDs from becoming stale when database records change.
+|
+*/
+
+Route::get('/', [HomeController::class, 'index'])
+    ->name('home');
 
 /*
 |--------------------------------------------------------------------------
